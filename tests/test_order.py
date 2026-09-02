@@ -1,17 +1,16 @@
 import allure
 import pytest
-import requests
 
-from config import REQUEST_TIMEOUT
+from api_methods import OrderApi
 from data import ORDER_COLOR_CASES, build_order_data
-from endpoints import Endpoints
-from urls import Urls
 
 
 @allure.feature('Создание заказа')
 class TestCreateOrder:
 
-    @allure.title('Заказ создаётся с набором цветов: {colors}')
+    @allure.title(
+        'Заказ создаётся с набором цветов: {colors}'
+    )
     @pytest.mark.parametrize(
         'colors',
         ORDER_COLOR_CASES,
@@ -23,19 +22,14 @@ class TestCreateOrder:
         created_order_tracks,
     ):
         order_data = build_order_data(colors)
+        response = OrderApi.create_order(order_data)
+        response_body = response.json()
+        track = response_body.get('track')
 
-        with allure.step('Отправить запрос на создание заказа'):
-            response = requests.post(
-                f'{Urls.BASE_URL}{Endpoints.CREATE_ORDER}',
-                json=order_data,
-                timeout=REQUEST_TIMEOUT,
-            )
+        with allure.step(
+            'Проверить код ответа и наличие track'
+        ):
+            assert response.status_code == 201
+            assert isinstance(track, int)
 
-            response_body = response.json()
-            track = response_body.get('track')
-
-            with allure.step('Проверить код ответа и наличие track'):
-                assert response.status_code == 201
-                assert isinstance(track, int)
-
-            created_order_tracks.append(track)
+        created_order_tracks.append(track)
